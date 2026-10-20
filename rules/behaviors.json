@@ -1,0 +1,96 @@
+{
+  "_comment": "违法行为知识库：把「行为 → 法条 → 罚款区间 → 必填要素」沉淀成可配置数据，避免把法律判断写死在代码里。新增违法行为只需追加配置，不改引擎。",
+  "version": "2026.10-demo",
+  "behaviors": {
+    "speeding": {
+      "label": "机动车超速行驶",
+      "category": "道路通行",
+      "required_fields": ["violation_time", "location", "plate", "speed_limit", "measured_speed"],
+      "fine_bands": [
+        {
+          "when": { "op": "gte", "args": [{ "op": "field", "path": "derived.overspeed_ratio" }, { "op": "const", "value": 0.5 }] },
+          "min": 200,
+          "max": 2000,
+          "article": "道路交通安全法 第99条第1款第4项",
+          "note": "超过规定时速50%以上",
+          "may_revoke_license": true
+        },
+        {
+          "when": { "op": "always" },
+          "min": 20,
+          "max": 200,
+          "article": "道路交通安全法 第90条",
+          "note": "超过规定时速未达50%",
+          "may_revoke_license": false
+        }
+      ]
+    },
+    "illegal_parking": {
+      "label": "机动车违法停放",
+      "category": "道路通行",
+      "required_fields": ["violation_time", "location", "plate"],
+      "fine_bands": [
+        {
+          "when": { "op": "always" },
+          "min": 20,
+          "max": 200,
+          "article": "道路交通安全法 第93条第2款",
+          "note": "驾驶人不在现场或拒绝驶离、妨碍其他车辆行人通行",
+          "may_revoke_license": false,
+          "precondition": "驾驶人不在现场或虽在现场但拒绝立即驶离，且妨碍通行；否则应先口头警告并令其驶离"
+        }
+      ]
+    },
+    "red_light": {
+      "label": "违反交通信号灯通行",
+      "category": "道路通行",
+      "required_fields": ["violation_time", "location", "plate"],
+      "fine_bands": [
+        {
+          "when": { "op": "always" },
+          "min": 20,
+          "max": 200,
+          "article": "道路交通安全法 第38条、第90条",
+          "note": "未按交通信号通行",
+          "may_revoke_license": false
+        }
+      ]
+    },
+    "no_seatbelt": {
+      "label": "驾驶机动车未按规定使用安全带",
+      "category": "道路通行",
+      "required_fields": ["violation_time", "location", "plate"],
+      "fine_bands": [
+        {
+          "when": { "op": "always" },
+          "min": 20,
+          "max": 200,
+          "article": "道路交通安全法 第51条、第90条",
+          "note": "未按规定使用安全带",
+          "may_revoke_license": false
+        }
+      ]
+    },
+    "phone_while_driving": {
+      "label": "驾驶机动车时拨打接听手持电话",
+      "category": "道路通行",
+      "required_fields": ["violation_time", "location", "plate"],
+      "fine_bands": [
+        {
+          "when": { "op": "always" },
+          "min": 20,
+          "max": 200,
+          "article": "道路交通安全法实施条例 第62条第3项、道路交通安全法 第90条",
+          "note": "驾驶时拨打接听手持电话",
+          "may_revoke_license": false
+        }
+      ]
+    },
+    "unknown": {
+      "label": "未识别违法行为",
+      "category": "未分类",
+      "required_fields": ["violation_time", "location"],
+      "fine_bands": []
+    }
+  }
+}

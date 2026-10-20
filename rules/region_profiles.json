@@ -1,0 +1,18 @@
+{
+  "_comment": "地区与程序参数档。这些数字在法律上并非全国唯一标准（如听证门槛、法制审核门槛由部门/地方规定），因此单独抽成可切换的 profile，而不是硬编码在规则里——这是产品对「地区差异」的显式建模。演示值仅供跑通流程，实务使用前必须按本地区现行文件校准。",
+  "profiles": {
+    "GX-2026": {
+      "label": "广西（演示档）",
+      "limitation_days": 730,
+      "limitation_days_extended": 1825,
+      "limitation_extended_when": "违法行为涉及公民生命健康安全、金融安全且有危害后果",
+      "record_entry_limit_days": 5,
+      "notice_limit_days": 30,
+      "hearing_threshold_amount": 2000,
+      "legal_review_threshold_amount": 1000,
+      "first_offense_window_days": 730,
+      "verified": false,
+      "verify_note": "听证与法制审核的具体金额门槛由部门规章或地方文件细化（交通领域多以 2000 元为听证起点），此处为演示值，未逐条核对，实务使用前必须替换为本地区现行标准"
+    }
+  }
+}

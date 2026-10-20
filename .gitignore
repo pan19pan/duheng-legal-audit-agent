@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# 生成的评测产物（可随时用 evals/run_eval.py 复现）
+data/eval_result.json
+data/*_table.md
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 本地密钥（永远不要提交）
+.env

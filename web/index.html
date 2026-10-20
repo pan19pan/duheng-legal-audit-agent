@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>度衡 DuHeng · 行政处罚合规审查助手</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="mark">衡</div>
+    <div class="brand-text">
+      <h1>度衡 <span class="latin">DuHeng</span></h1>
+      <p>行政处罚案件的合规自查与留痕助手</p>
+    </div>
+  </div>
+  <div class="topmeta" id="topmeta">
+    <span class="dot dot-ok"></span><span>规则集加载中</span>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="panel">
+    <div class="panel-head">
+      <h2>案件材料</h2>
+      <span class="panel-note">粘贴笔录、告知书或案件摘要</span>
+    </div>
+
+    <div class="samples" id="samples"></div>
+
+    <textarea id="facts" spellcheck="false" placeholder="例：2026年10月8日9时10分，桂A12345小型轿车在南宁市民族大道行驶，该路段限速60公里/小时，固定测速设备实测时速75公里/小时……"></textarea>
+
+    <div class="row2">
+      <label>案件编号<input id="caseId" placeholder="自动生成"></label>
+      <label>审查基准日<input id="reviewDate" placeholder="今天"></label>
+    </div>
+
+    <div class="actions">
+      <button id="run" class="primary">开始审查</button>
+      <label class="switch" id="llmWrap" title="配置 DUHENG_LLM_KEY 后可启用">
+        <input type="checkbox" id="useLlm" checked>
+        <span>LLM 增强</span>
+      </label>
+      <kbd>Ctrl ↵</kbd>
+    </div>
+
+    <div class="principles">
+      <p><b>不看结论看依据。</b>每条提示都挂着法条与事实锚点，缺一条就不输出。</p>
+      <p><b>不懂就说不知道。</b>要素缺失时标为「待核实」，不拿默认值糊过去。</p>
+      <p><b>判定权不在模型。</b>LLM 只读文书、写文书，判定交给可审计的规则。</p>
+    </div>
+  </section>
+
+  <section class="results" id="results">
+    <div class="empty" id="empty">
+      <div class="empty-mark">衡</div>
+      <h3>左侧选择示例案件，或粘贴一段案件事实</h3>
+      <p>系统会按「形式合法性 → 事实认定 → 法律适用 → 裁量适当」四层依次审查，
+         逐条给出命中理由、法条依据与处置建议，并保留可追溯的审查留痕。</p>
+    </div>
+  </section>
+</main>
+
+<footer class="disclaimer">
+  <b>免责声明</b>：本项目为产品原型，规则库与地区参数档为演示配置，法条以官方现行文本为准，
+  听证与法制审核的金额门槛需按本地区文件校准。输出仅供执法人员参考，不构成法律意见，不替代人工判断。
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

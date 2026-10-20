@@ -1,0 +1,21 @@
+# 依赖
+
+运行本仓库 **不需要安装任何第三方依赖**（Python 3.10+ 标准库即可）。
+
+可选的 LLM 增强层同样使用标准库 urllib 实现，无需额外安装包：
+
+```bash
+# Windows (PowerShell)
+$env:DUHENG_LLM_BASE = "https://api.openai.com/v1"   # 或任意 OpenAI 兼容网关
+$env:DUHENG_LLM_KEY  = "sk-..."
+$env:DUHENG_LLM_MODEL = "gpt-4o-mini"
+python app.py
+
+# macOS / Linux
+export DUHENG_LLM_BASE="https://api.openai.com/v1"
+export DUHENG_LLM_KEY="sk-..."
+export DUHENG_LLM_MODEL="gpt-4o-mini"
+python app.py
+```
+
+未配置时自动使用纯规则模式，功能完整可用。

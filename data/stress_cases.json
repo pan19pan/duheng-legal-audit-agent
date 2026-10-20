@@ -1,0 +1,112 @@
+[
+  {
+    "id": "S01",
+    "focus": "限速与车速写成汉字数字",
+    "facts_text": "2026年9月18日上午，一辆小型轿车在南宁市民族大道被固定测速设备记录，该路段限速六十公里每小时，实际行驶车速七十八公里每小时。设备检定有效。记录图片清晰可辨。2026年9月18日采集，2026年9月19日录入系统，2026年9月22日告知当事人，已告知陈述申辩权。拟处罚款150元。",
+    "expect_behavior": "speeding",
+    "expect_rules": [
+      "L2-01"
+    ],
+    "expect_decision": "RETURN",
+    "expect_fields": {
+      "behavior": "speeding",
+      "speed_limit": 60,
+      "measured_speed": 78,
+      "proposed_fine": 150
+    }
+  },
+  {
+    "id": "S02",
+    "focus": "OCR 误识别号牌，人工复核更正",
+    "facts_text": "2026年9月19日16时20分，一辆小型轿车在南宁市民族大道闯红灯通行。号牌经OCR识别为桂A1234S，人工复核确认为桂A12345。记录图片清晰可辨。2026年9月19日采集，2026年9月20日录入系统，2026年9月23日告知当事人，已告知陈述申辩权。拟处罚款150元。",
+    "expect_behavior": "red_light",
+    "expect_rules": [],
+    "expect_decision": "PASS",
+    "expect_fields": {
+      "behavior": "red_light",
+      "plate": "桂A12345",
+      "proposed_fine": 150
+    }
+  },
+  {
+    "id": "S03",
+    "focus": "文书只有月日、年份在前置叙述中",
+    "facts_text": "【案件来源】2026年8月，支队部署夏季交通秩序整治行动，共设置检查点十二处。9月3日14时，桂A88888小型轿车在南宁市民族大道行驶，该路段限速60公里/小时，实测时速88公里/小时。设备经法制和技术审核，设置地点已向社会公布，测速设备检定有效。记录图片清晰可辨。拟处罚款200元。",
+    "expect_behavior": "speeding",
+    "expect_rules": [
+      "L2-01",
+      "L4-05"
+    ],
+    "expect_decision": "FIX",
+    "expect_fields": {
+      "behavior": "speeding",
+      "proposed_fine": 200
+    }
+  },
+  {
+    "id": "S04",
+    "focus": "罚款金额写作大写汉字",
+    "facts_text": "2026年9月21日9时，桂A12121小型轿车在南宁市民族大道闯红灯通行。记录图片清晰可辨。2026年9月21日采集，2026年9月22日录入系统，2026年9月25日向机动车所有人送达告知，已告知陈述申辩权。经查驾驶人系李某。当事人非首次违法。拟对当事人处以罚款贰佰元。",
+    "expect_behavior": "red_light",
+    "expect_rules": [
+      "L4-05"
+    ],
+    "expect_decision": "FIX",
+    "expect_fields": {
+      "behavior": "red_light",
+      "proposed_fine": 200
+    }
+  },
+  {
+    "id": "S05",
+    "focus": "口语化描述，无规范术语",
+    "facts_text": "2026年9月22日下午，桂A34343那辆车在南宁市大学路那边把车往路边一靠就挡了道，人也不在车边，后边车过不去。我们拍了照，照片挺清楚。后来 9月23日 把记录录进去了，9月26日 给车主寄了告知，也说了可以申辩。拟罚150元。",
+    "expect_behavior": "illegal_parking",
+    "expect_rules": [],
+    "expect_decision": "PASS",
+    "expect_fields": {
+      "behavior": "illegal_parking",
+      "plate": "桂A34343",
+      "proposed_fine": 150
+    }
+  },
+  {
+    "id": "S06",
+    "focus": "否定嵌套：并非未告知",
+    "facts_text": "2026年9月23日10时，桂A56565小型轿车在南宁市民族大道行驶，该路段限速60公里/小时，实测时速78公里/小时。设备经法制和技术审核，设置地点已向社会公布，测速设备检定有效。记录图片清晰可辨。2026年9月23日采集，2026年9月24日录入系统，2026年9月27日告知当事人。材料显示并非未告知陈述申辩权。经查驾驶人系李某。拟处罚款150元。",
+    "expect_behavior": "speeding",
+    "expect_rules": [],
+    "expect_decision": "PASS",
+    "expect_fields": {
+      "behavior": "speeding",
+      "proposed_fine": 150
+    }
+  },
+  {
+    "id": "S07",
+    "focus": "速度单位写作千米每小时",
+    "facts_text": "2026年9月24日11时，桂A78787小型轿车在南宁市民族大道行驶，该路段限速60公里/小时，记录速度78千米每小时。设备经法制和技术审核，设置地点已向社会公布，测速设备检定有效。记录图片清晰可辨。2026年9月24日采集，2026年9月25日录入系统，2026年9月28日告知当事人，已告知陈述申辩权。经查驾驶人系李某。拟处罚款150元。",
+    "expect_behavior": "speeding",
+    "expect_rules": [],
+    "expect_decision": "PASS",
+    "expect_fields": {
+      "behavior": "speeding",
+      "measured_speed": 78,
+      "proposed_fine": 150
+    }
+  },
+  {
+    "id": "S08",
+    "focus": "极简摘要，要素大量缺失",
+    "facts_text": "超速，罚200。",
+    "expect_behavior": "speeding",
+    "expect_rules": [
+      "L2-01"
+    ],
+    "expect_decision": "RETURN",
+    "expect_fields": {
+      "behavior": "speeding",
+      "proposed_fine": 200
+    }
+  }
+]

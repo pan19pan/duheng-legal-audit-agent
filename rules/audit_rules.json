@@ -1,0 +1,463 @@
+{
+  "_comment": "审查规则库 v0.9。设计原则：规则只描述「什么条件下触发什么提示」，不写结论话术之外的自由文本；每条规则必须携带法条依据与依据可信度。basis.confidence = high（条文号已核） / medium（规范名称已核、条文号待核）——这是产品对「法律 AI 幻觉」的工程化回应：宁可标出不确定，也不假装确定。",
+  "version": "0.9.2",
+  "updated": "2026-10-19",
+  "layers": [
+    { "id": 1, "name": "形式合法性", "desc": "谁在做、有没有权、程序走没走完" },
+    { "id": 2, "name": "事实认定", "desc": "要件齐不齐、证据够不够、事实自不自洽" },
+    { "id": 3, "name": "法律适用", "desc": "定性和法条对不对、幅度在不在区间内" },
+    { "id": 4, "name": "裁量适当", "desc": "罚得合不合适、有没有该轻该免的情形" }
+  ],
+  "rules": [
+    {
+      "id": "L1-01",
+      "layer": 1,
+      "title": "执法主体与管辖",
+      "kind": "risk",
+      "severity": "block",
+      "check": "expr",
+      "when": { "op": "eq", "args": [{ "op": "field", "path": "agency_has_jurisdiction" }, { "op": "const", "value": false }] },
+      "finding": "案件由「{agency}」办理，但材料中未见其对该违法行为发生地具有管辖权的依据。",
+      "suggestion": "补充管辖依据（违法行为发生地、指定管辖或移送函），或将案件移送有管辖权的机关。",
+      "needs_human": true,
+      "basis": [
+        { "law": "行政处罚法", "article": "第22条", "confidence": "high", "note": "行政处罚由违法行为发生地的行政机关管辖" }
+      ]
+    },
+    {
+      "id": "L1-02",
+      "layer": 1,
+      "title": "追究时效",
+      "kind": "risk",
+      "severity": "block",
+      "check": "expr",
+      "when": { "op": "gt", "args": [{ "op": "field", "path": "days_since_violation" }, { "op": "field", "path": "limitation_days" }] },
+      "finding": "违法行为发生于 {violation_time}，距审查日已 {days_since_violation} 天，超过 {limitation_days} 天的追责时效。",
+      "suggestion": "原则上不再给予行政处罚。若属涉及公民生命健康安全、金融安全且有危害后果的情形，核对是否适用五年时效。",
+      "needs_human": true,
+      "basis": [
+        { "law": "行政处罚法", "article": "第36条", "confidence": "high", "note": "二年未被发现的不再给予行政处罚；涉及公民生命健康安全、金融安全且有危害后果的为五年" }
+      ]
+    },
+    {
+      "id": "L1-03",
+      "layer": 1,
+      "title": "电子技术监控设备合规性",
+      "kind": "risk",
+      "severity": "block",
+      "check": "expr",
+      "when": {
+        "op": "any",
+        "args": [
+          { "op": "eq", "args": [{ "op": "field", "path": "device_certified" }, { "op": "const", "value": false }] },
+          { "op": "eq", "args": [{ "op": "field", "path": "device_published" }, { "op": "const", "value": false }] }
+        ]
+      },
+      "finding": "记录该行为的电子技术监控设备未完成法制和技术审核，或设置地点未向社会公布（审核={device_certified}，公布={device_published}）。",
+      "suggestion": "该记录不得作为处罚依据。改用其他合法证据，或补正设备审核与公布手续后再行处理。",
+      "needs_human": true,
+      "basis": [
+        { "law": "行政处罚法", "article": "第41条", "confidence": "high", "note": "电子技术监控设备应当经过法制和技术审核，确保符合标准、设置合理、标志明显，设置地点应当向社会公布" }
+      ]
+    },
+    {
+      "id": "L1-04",
+      "layer": 1,
+      "title": "监控记录录入时限",
+      "kind": "risk",
+      "severity": "warn",
+      "check": "expr",
+      "when": { "op": "gt", "args": [{ "op": "field", "path": "days_collect_to_entry" }, { "op": "field", "path": "record_entry_limit_days" }] },
+      "finding": "监控记录自收集至录入系统间隔 {days_collect_to_entry} 天，超过 {record_entry_limit_days} 天的录入时限。",
+      "suggestion": "核实延迟原因并附说明；若因此影响当事人查询与申辩，应主动延长其申辩期限。",
+      "needs_human": false,
+      "basis": [
+        { "law": "道路交通安全违法行为处理程序规定", "article": "", "confidence": "medium", "note": "交通技术监控设备收集的违法行为记录资料应在规定时限内录入系统；具体条文号需核对现行有效版本" }
+      ]
+    },
+    {
+      "id": "L1-05",
+      "layer": 1,
+      "title": "违法事实告知时限",
+      "kind": "risk",
+      "severity": "warn",
+      "check": "expr",
+      "when": { "op": "gt", "args": [{ "op": "field", "path": "days_collect_to_notice" }, { "op": "field", "path": "notice_limit_days" }] },
+      "finding": "自记录收集至告知当事人间隔 {days_collect_to_notice} 天，超过 {notice_limit_days} 天的告知要求。",
+      "suggestion": "补充告知并说明迟延原因；确保当事人在处罚决定前仍有完整的陈述申辩期间。",
+      "needs_human": false,
+      "basis": [
+        { "law": "行政处罚法", "article": "第41条", "confidence": "high", "note": "行政机关应当及时告知当事人违法事实，并为当事人查询、陈述和申辩提供便利" },
+        { "law": "道路交通安全违法行为处理程序规定", "article": "", "confidence": "medium", "note": "告知时限的具体条文号需核对现行有效版本" }
+      ]
+    },
+    {
+      "id": "L1-06",
+      "layer": 1,
+      "title": "陈述申辩权告知",
+      "kind": "risk",
+      "severity": "block",
+      "check": "expr",
+      "when": { "op": "eq", "args": [{ "op": "field", "path": "rights_notified" }, { "op": "const", "value": false }] },
+      "finding": "告知材料中未载明当事人依法享有的陈述权、申辩权，或存在变相限制申辩的情形。",
+      "suggestion": "重新制作并送达告知书，明确告知陈述申辩权及行使期限后再作出决定。",
+      "needs_human": true,
+      "basis": [
+        { "law": "行政处罚法", "article": "第44条", "confidence": "high", "note": "作出处罚决定前应告知拟处罚内容及事实、理由、依据，并告知依法享有的陈述、申辩、要求听证等权利" },
+        { "law": "行政处罚法", "article": "第45条", "confidence": "high", "note": "当事人有权陈述和申辩，行政机关不得因当事人申辩而加重处罚" }
+      ]
+    },
+    {
+      "id": "L1-07",
+      "layer": 1,
+      "title": "重大执法决定法制审核",
+      "kind": "risk",
+      "severity": "block",
+      "check": "expr",
+      "when": {
+        "op": "all",
+        "args": [
+          { "op": "gte", "args": [{ "op": "field", "path": "proposed_fine" }, { "op": "field", "path": "legal_review_threshold_amount" }] },
+          { "op": "eq", "args": [{ "op": "field", "path": "legal_review_done" }, { "op": "const", "value": false }] }
+        ]
+      },
+      "finding": "拟处罚款 {proposed_fine} 元，达到本单位重大执法决定标准（门槛 {legal_review_threshold_amount} 元），但未见法制审核意见。",
+      "suggestion": "在作出决定前完成法制审核并附审核意见书；未经法制审核不得作出决定。",
+      "needs_human": true,
+      "basis": [
+        { "law": "行政处罚法", "article": "第58条", "confidence": "high", "note": "涉及重大公共利益的、直接关系当事人重大权益的等情形，在作出决定前应进行法制审核，未经审核不得作出决定" }
+      ]
+    },
+    {
+      "id": "L1-08",
+      "layer": 1,
+      "title": "听证权告知",
+      "kind": "risk",
+      "severity": "block",
+      "check": "expr",
+      "when": {
+        "op": "all",
+        "args": [
+          { "op": "gte", "args": [{ "op": "field", "path": "proposed_fine" }, { "op": "field", "path": "hearing_threshold_amount" }] },
+          { "op": "eq", "args": [{ "op": "field", "path": "hearing_right_notified" }, { "op": "const", "value": false }] }
+        ]
+      },
+      "finding": "拟处罚款 {proposed_fine} 元，属于应当告知听证权的情形（门槛 {hearing_threshold_amount} 元），但告知材料中未告知听证权利。",
+      "suggestion": "重新告知并保障当事人自告知之日起五日内提出听证申请的权利。",
+      "needs_human": true,
+      "basis": [
+        { "law": "行政处罚法", "article": "第63条", "confidence": "high", "note": "较大数额罚款等情形，当事人有权要求听证" },
+        { "law": "行政处罚法", "article": "第64条", "confidence": "high", "note": "当事人应在被告知后五日内提出听证要求" }
+      ]
+    },
+    {
+      "id": "L1-09",
+      "layer": 1,
+      "title": "责令改正与处罚并用",
+      "kind": "info",
+      "severity": "notice",
+      "check": "expr",
+      "when": { "op": "eq", "args": [{ "op": "field", "path": "correction_order_issued" }, { "op": "const", "value": false }] },
+      "finding": "作出处罚的同时未见责令改正通知。",
+      "suggestion": "处罚与教育相结合，建议一并责令当事人改正违法行为。",
+      "needs_human": false,
+      "basis": [
+        { "law": "行政处罚法", "article": "第5条", "confidence": "high", "note": "坚持处罚与教育相结合" },
+        { "law": "行政处罚法", "article": "第28条", "confidence": "high", "note": "实施行政处罚时应当责令当事人改正或者限期改正违法行为" }
+      ]
+    },
+    {
+      "id": "L2-01",
+      "layer": 2,
+      "title": "违法构成要素完整性",
+      "kind": "risk",
+      "severity": "block",
+      "check": "missing",
+      "downgrade_if_suspect": true,
+      "fields": ["violation_time", "location", "plate"],
+      "finding": "违法构成要素缺失：{missing_fields}。",
+      "suggestion": "补录缺失要素后再进入审查流程；要素不齐不得作出处罚决定。",
+      "needs_human": false,
+      "basis": [
+        { "law": "行政处罚法", "article": "第40条", "confidence": "high", "note": "违法事实不清、证据不足的，不得给予行政处罚" },
+        { "law": "行政处罚法", "article": "第54条", "confidence": "high", "note": "必须全面、客观、公正地调查，收集有关证据" }
+      ]
+    },
+    {
+      "id": "L2-02",
+      "layer": 2,
+      "title": "证据清晰可辨",
+      "kind": "risk",
+      "severity": "block",
+      "check": "expr",
+      "when": { "op": "eq", "args": [{ "op": "field", "path": "evidence_legible" }, { "op": "const", "value": false }] },
+      "finding": "证据图片/视频无法清晰辨认号牌、车型或违法行为特征。",
+      "suggestion": "调取原始记录或补充其他证据；无法补正的，不得作为处罚依据。",
+      "needs_human": false,
+      "basis": [
+        { "law": "行政处罚法", "article": "第41条", "confidence": "high", "note": "记录违法事实应当真实、清晰、完整、准确" }
+      ]
+    },
+    {
+      "id": "L2-03",
+      "layer": 2,
+      "title": "违法行为人身份识别",
+      "applies_to": ["speeding", "red_light", "no_seatbelt", "phone_while_driving"],
+      "kind": "risk",
+      "severity": "warn",
+      "check": "expr",
+      "when": { "op": "eq", "args": [{ "op": "field", "path": "driver_identified" }, { "op": "const", "value": false }] },
+      "finding": "非现场记录未能识别实际驾驶人，{owner_notice_status}。",
+      "suggestion": "按程序向机动车所有人或管理人送达告知，由其协助确认驾驶人；无法确认时依法处理车主责任，避免直接推定驾驶人。",
+      "needs_human": true,
+      "basis": [
+        { "law": "道路交通安全法", "article": "第114条", "confidence": "medium", "note": "对非现场记录可依据记录资料对机动车所有人或管理人予以处罚，但应依法告知；适用条件需结合地方程序规定核对" }
+      ]
+    },
+    {
+      "id": "L2-04",
+      "layer": 2,
+      "title": "重复记录排查",
+      "kind": "risk",
+      "severity": "warn",
+      "check": "expr",
+      "when": { "op": "eq", "args": [{ "op": "field", "path": "duplicate_record" }, { "op": "const", "value": true }] },
+      "finding": "同一时间、同一地点、同一行为存在多条监控记录。",
+      "suggestion": "合并为一次违法行为处理，删除重复记录，避免重复处罚。",
+      "needs_human": false,
+      "basis": [
+        { "law": "行政处罚法", "article": "第29条", "confidence": "high", "note": "对当事人的同一个违法行为，不得给予两次以上罚款的行政处罚" }
+      ]
+    },
+    {
+      "id": "L2-05",
+      "layer": 2,
+      "title": "测速设备检定有效性",
+      "applies_to": ["speeding"],
+      "kind": "risk",
+      "severity": "block",
+      "check": "expr",
+      "when": { "op": "eq", "args": [{ "op": "field", "path": "device_calibrated" }, { "op": "const", "value": false }] },
+      "finding": "测速设备在记录时点未处于检定有效期内。",
+      "suggestion": "该测速数据证明力不足，应调取检定证书或改用其他证据；未补正前不宜作为超速认定依据。",
+      "needs_human": false,
+      "basis": [
+        { "law": "行政处罚法", "article": "第41条", "confidence": "high", "note": "电子技术监控设备应当符合标准并经技术审核" },
+        { "law": "计量法", "article": "第9条", "confidence": "medium", "note": "用于贸易结算、安全防护、医疗卫生、环境监测的计量器具实行强制检定；测速设备的检定要求以现行计量规程为准" }
+      ]
+    },
+    {
+      "id": "L2-06",
+      "layer": 2,
+      "title": "事实与定性自洽",
+      "kind": "risk",
+      "severity": "block",
+      "check": "expr",
+      "when": {
+        "op": "all",
+        "args": [
+          { "op": "eq", "args": [{ "op": "field", "path": "behavior" }, { "op": "const", "value": "speeding" }] },
+          { "op": "lte", "args": [{ "op": "field", "path": "measured_speed" }, { "op": "field", "path": "speed_limit" }] }
+        ]
+      },
+      "finding": "实测时速 {measured_speed} km/h 未超过限速 {speed_limit} km/h，超速事实不成立。",
+      "suggestion": "不得以超速定性作出处罚，退回重新核查或撤销。",
+      "needs_human": true,
+      "basis": [
+        { "law": "行政处罚法", "article": "第40条", "confidence": "high", "note": "违法事实不清、证据不足的，不得给予行政处罚" }
+      ]
+    },
+    {
+      "id": "L2-07",
+      "layer": 2,
+      "title": "违停处罚的前置条件",
+      "applies_to": ["illegal_parking"],
+      "kind": "risk",
+      "severity": "block",
+      "check": "expr",
+      "when": { "op": "eq", "args": [{ "op": "field", "path": "driver_absent_or_refused" }, { "op": "const", "value": false }] },
+      "finding": "材料未显示驾驶人不在现场或拒绝立即驶离，不符合违停处罚的前置条件。",
+      "suggestion": "驾驶人尚在现场且愿意驶离的，应先指出违法行为、口头警告并令其立即驶离，不宜直接罚款。",
+      "needs_human": true,
+      "basis": [
+        { "law": "道路交通安全法", "article": "第93条", "confidence": "high", "note": "对违停可指出违法行为并口头警告令其驶离；驾驶人不在现场或拒绝驶离且妨碍通行的，方可处二十元以上二百元以下罚款" }
+      ]
+    },
+    {
+      "id": "L3-01",
+      "layer": 3,
+      "title": "行为定性有明确法条",
+      "kind": "risk",
+      "severity": "block",
+      "check": "expr",
+      "when": { "op": "eq", "args": [{ "op": "field", "path": "article_matched" }, { "op": "const", "value": false }] },
+      "finding": "未能将「{behavior_label}」对应到具体的处罚条款，定性依据缺失。",
+      "suggestion": "补充定性依据，明确所适用的处罚条款项；定性不清不得作出决定。",
+      "needs_human": true,
+      "basis": [
+        { "law": "行政处罚法", "article": "第4条", "confidence": "high", "note": "行政处罚遵循法定原则，依照本法规定的权限、范围、条件和程序实施" }
+      ]
+    },
+    {
+      "id": "L3-02",
+      "layer": 3,
+      "title": "罚款幅度校验",
+      "kind": "risk",
+      "severity": "block",
+      "check": "band",
+      "field": "proposed_fine",
+      "finding": "拟处罚款 {proposed_fine} 元，不在「{behavior_label}」法定幅度 {fine_min}–{fine_max} 元之内（依据 {fine_article}），需核对是低于下限还是高于上限。",
+      "suggestion": "在法定幅度内重新确定罚款数额；确有减轻情形的，应在决定书中说明减轻依据与计算过程。",
+      "needs_human": false,
+      "basis": [
+        { "law": "行政处罚法", "article": "第4条", "confidence": "high", "note": "处罚种类与幅度由法律、法规、规章规定" }
+      ]
+    },
+    {
+      "id": "L3-03",
+      "layer": 3,
+      "title": "处罚种类与法条匹配",
+      "kind": "risk",
+      "severity": "block",
+      "check": "expr",
+      "when": {
+        "op": "all",
+        "args": [
+          { "op": "eq", "args": [{ "op": "field", "path": "penalty_type" }, { "op": "const", "value": "吊销机动车驾驶证" }] },
+          { "op": "eq", "args": [{ "op": "field", "path": "band_may_revoke" }, { "op": "const", "value": false }] }
+        ]
+      },
+      "finding": "拟作出「吊销机动车驾驶证」处罚，但所适用条款（{fine_article}）未设定吊销处罚。",
+      "suggestion": "删除该处罚种类，或在决定书中改引设有吊销处罚的条款（如超速50%以上适用第99条）。",
+      "needs_human": true,
+      "basis": [
+        { "law": "行政处罚法", "article": "第4条", "confidence": "high", "note": "处罚种类必须有法定依据" }
+      ]
+    },
+    {
+      "id": "L3-04",
+      "layer": 3,
+      "title": "适用现行有效版本",
+      "kind": "risk",
+      "severity": "warn",
+      "check": "expr",
+      "when": { "op": "eq", "args": [{ "op": "field", "path": "law_version_current" }, { "op": "const", "value": false }] },
+      "finding": "文书引用的条款与现行有效版本不一致，或引用了已修改/废止的表述。",
+      "suggestion": "核对现行文本后更正条款序号与表述，避免因引用错误被复议或诉讼撤销。",
+      "needs_human": false,
+      "basis": [
+        { "law": "行政处罚法", "article": "第4条", "confidence": "high", "note": "处罚依据须为现行有效的法律规范" }
+      ]
+    },
+    {
+      "id": "L4-01",
+      "layer": 4,
+      "title": "一事不再罚",
+      "kind": "risk",
+      "severity": "block",
+      "check": "expr",
+      "when": { "op": "eq", "args": [{ "op": "field", "path": "prior_fine_same_act" }, { "op": "const", "value": true }] },
+      "finding": "同一违法行为此前已被处以罚款（{prior_fine_ref}），本次拟再次罚款。",
+      "suggestion": "不得再次罚款。如发现新的违法事实，应另案处理并在文书中区分事实。",
+      "needs_human": true,
+      "basis": [
+        { "law": "行政处罚法", "article": "第29条", "confidence": "high", "note": "对当事人的同一个违法行为，不得给予两次以上罚款的行政处罚" }
+      ]
+    },
+    {
+      "id": "L4-02",
+      "layer": 4,
+      "title": "首违不罚初筛",
+      "kind": "mitigation",
+      "severity": "notice",
+      "check": "expr",
+      "when": {
+        "op": "all",
+        "args": [
+          { "op": "eq", "args": [{ "op": "field", "path": "first_offense" }, { "op": "const", "value": true }] },
+          { "op": "in", "args": [{ "op": "field", "path": "harm_level" }, { "op": "const", "value": ["none", "minor"] }] },
+          { "op": "eq", "args": [{ "op": "field", "path": "corrected" }, { "op": "const", "value": true }] }
+        ]
+      },
+      "finding": "初次违法、危害后果轻微且已及时改正，符合首违可不罚的初筛条件。",
+      "suggestion": "建议优先适用不予行政处罚，改为教育、责令改正并记录；是否适用须由执法人员裁量确认，并核对本地区首违不罚清单。",
+      "needs_human": true,
+      "basis": [
+        { "law": "行政处罚法", "article": "第33条第1款", "confidence": "high", "note": "初次违法且危害后果轻微并及时改正的，可以不予行政处罚" }
+      ]
+    },
+    {
+      "id": "L4-03",
+      "layer": 4,
+      "title": "轻微不罚",
+      "kind": "mitigation",
+      "severity": "notice",
+      "check": "expr",
+      "when": {
+        "op": "all",
+        "args": [
+          { "op": "eq", "args": [{ "op": "field", "path": "harm_level" }, { "op": "const", "value": "none" }] },
+          { "op": "eq", "args": [{ "op": "field", "path": "corrected" }, { "op": "const", "value": true }] },
+          { "op": "eq", "args": [{ "op": "field", "path": "minor_violation" }, { "op": "const", "value": true }] }
+        ]
+      },
+      "finding": "违法行为轻微、及时改正且没有造成危害后果。",
+      "suggestion": "依法不予行政处罚，对当事人进行教育。",
+      "needs_human": true,
+      "basis": [
+        { "law": "行政处罚法", "article": "第33条第1款", "confidence": "high", "note": "违法行为轻微并及时改正，没有造成危害后果的，不予行政处罚" }
+      ]
+    },
+    {
+      "id": "L4-04",
+      "layer": 4,
+      "title": "从轻减轻情形",
+      "kind": "mitigation",
+      "severity": "notice",
+      "check": "nonempty",
+      "field": "mitigating_factors",
+      "finding": "存在从轻或减轻处罚情形：{mitigating_factors}。",
+      "suggestion": "在法定幅度内从轻或减轻，并在决定书中写明认定的事实与依据。",
+      "needs_human": false,
+      "basis": [
+        { "law": "行政处罚法", "article": "第32条", "confidence": "high", "note": "主动消除或减轻危害后果、受他人胁迫或诱骗、主动供述等应当从轻或减轻处罚" }
+      ]
+    },
+    {
+      "id": "L4-05",
+      "layer": 4,
+      "title": "顶格处罚的过罚相当",
+      "kind": "risk",
+      "severity": "warn",
+      "check": "expr",
+      "when": {
+        "op": "all",
+        "args": [
+          { "op": "eq", "args": [{ "op": "field", "path": "proposed_fine" }, { "op": "field", "path": "fine_max" }] },
+          { "op": "empty", "args": [{ "op": "field", "path": "aggravating_factors" }] }
+        ]
+      },
+      "finding": "拟按法定幅度上限处罚（{proposed_fine} 元），但材料中未记载从重情节。",
+      "suggestion": "补充从重情节的事实与证据，或下调至与情节相当的数额，避免过罚失当。",
+      "needs_human": true,
+      "basis": [
+        { "law": "行政处罚法", "article": "第5条", "confidence": "high", "note": "行政处罚应当与违法行为的事实、性质、情节以及社会危害程度相当" }
+      ]
+    },
+    {
+      "id": "L4-06",
+      "layer": 4,
+      "title": "无主观过错不罚",
+      "kind": "mitigation",
+      "severity": "notice",
+      "check": "expr",
+      "when": { "op": "eq", "args": [{ "op": "field", "path": "subjective_fault_excused" }, { "op": "const", "value": true }] },
+      "finding": "当事人提出证据证明其没有主观过错。",
+      "suggestion": "依法不予行政处罚，并在决定书中对证据作出评价。",
+      "needs_human": true,
+      "basis": [
+        { "law": "行政处罚法", "article": "第33条第2款", "confidence": "high", "note": "当事人有证据足以证明没有主观过错的，不予行政处罚，法律、行政法规另有规定的除外" }
+      ]
+    }
+  ]
+}
