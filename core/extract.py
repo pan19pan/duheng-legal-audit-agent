@@ -90,7 +90,7 @@ def extract_from_text(text):
     if notice:
         out["notice_time"] = notice
 
-    loc = _first(r"在([\u4e00-\u9fa5]{2,12}(?:路|街|大道|路口|交叉口|高速|隧道|桥))", t)
+    loc = _first(r"在([A-Za-z0-9\u4e00-\u9fa5]{2,15}?(?:路|街|大道|路口|交叉口|高速|隧道|大桥|桥))", t)
     if loc:
         out["location"] = loc
 
@@ -160,7 +160,7 @@ def extract_from_text(text):
         out["driver_absent_or_refused"] = True
     elif re.search(r"驾驶人(?:仍)?在现场", t):
         out["driver_absent_or_refused"] = False
-    flag("duplicate_record", r"未发现重复|查重未发现|无重复记录", r"重复(?:录入|记录)|同一行为.{0,8}多条记录")
+    flag("duplicate_record", r"未发现重复|查重未发现|无重复记录", r"重复(?:录入|记录)|同一行为.{0,8}(?:多条|两条|三次|多次)记录|记录两次|分别录入")
     flag("owner_notified", r"未向.{0,8}(?:所有人|车主).{0,4}告知|尚未向", r"向(?:机动车)?(?:所有人|车主).{0,4}(?:告知|送达)")
     flag("first_offense", r"非首次|多次违法|此前有违法记录", r"首次违法|初次违法|第一次违法|无违法记录")
     flag("corrected", r"未改正|拒不改正|未驶离", r"已(?:及时)?改正|已整改|已驶离|当场改正")

@@ -5,9 +5,13 @@
 """
 
 import argparse
+import html
+import io
 import json
 import os
+import re
 import sys
+import zipfile
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -34,6 +38,22 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _extract_docx(self):
+        """接收原始 .docx 字节流，返回提取出的纯文本，供前端填入输入框。"""
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return self._json({"error": "bad request"}, 400)
+        if length <= 0 or length > 10 * 1024 * 1024:
+            return self._json({"error": "文件为空或超过 10MB 上限"}, 400)
+        data = self.rfile.read(length)
+        text = _docx_text(data)
+        if text is None:
+            return self._json({"error": "无法解析：这不是有效的 .docx 文件"}, 400)
+        if len(text) < 4:
+            return self._json({"error": "文档里没有提取到正文文字"}, 400)
+        return self._json({"text": text})
+
     def do_GET(self):
         if self.path.startswith("/api/meta"):
             cases = _load(os.path.join(ROOT, "data", "sample_cases.json"))
@@ -57,6 +77,8 @@ class Handler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self):
+        if self.path.startswith("/api/extract_docx"):
+            return self._extract_docx()
         if not self.path.startswith("/api/audit"):
             return self._json({"error": "not found"}, 404)
         try:
@@ -79,6 +101,19 @@ class Handler(SimpleHTTPRequestHandler):
             use_llm=bool(payload.get("use_llm", True)),
         )
         return self._json(result)
+
+
+def _docx_text(data):
+    """从 .docx 字节流提取正文文本（docx 即 zip，用标准库解析，零依赖）。"""
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            xml = z.read("word/document.xml").decode("utf-8", "ignore")
+    except (zipfile.BadZipFile, KeyError):
+        return None
+    xml = xml.replace("</w:p>", "\n").replace("<w:tab/>", "\t").replace("<w:br/>", "\n")
+    text = re.sub(r"<[^>]+>", "", xml)
+    lines = [ln.strip() for ln in html.unescape(text).splitlines()]
+    return "\n".join(ln for ln in lines if ln)
 
 
 def _load(path):

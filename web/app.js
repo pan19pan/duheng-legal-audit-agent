@@ -227,6 +227,7 @@ async function init() {
   document.getElementById("facts").addEventListener("keydown", e => {
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") runAudit();
   });
+  wireUpload();
 
   if (m.samples.length) {
     const wanted = new URLSearchParams(location.search).get("case");
@@ -236,3 +237,46 @@ async function init() {
 }
 
 init();
+
+function wireUpload() {
+  const btn = document.getElementById("uploadBtn");
+  const fileInput = document.getElementById("caseFile");
+  const hint = document.getElementById("uploadHint");
+  const facts = document.getElementById("facts");
+
+  btn.onclick = () => fileInput.click();
+
+  fileInput.onchange = async () => {
+    const f = fileInput.files[0];
+    if (!f) return;
+    const name = f.name.toLowerCase();
+    hint.textContent = "正在读取「" + f.name + "」……";
+    try {
+      let text;
+      if (name.endsWith(".txt")) {
+        text = await f.text();
+      } else if (name.endsWith(".docx")) {
+        const res = await fetch("/api/extract_docx", {
+          method: "POST",
+          headers: { "Content-Type": "application/octet-stream" },
+          body: f,
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "解析失败");
+        text = data.text;
+      } else {
+        throw new Error("只支持 .txt 和 .docx 文件");
+      }
+      text = (text || "").trim();
+      if (text.length < 4) throw new Error("文件里没有提取到有效文字");
+      facts.value = text;
+      const n = document.getElementById("caseId");
+      if (n && !n.value) n.value = f.name.replace(/\.(txt|docx)$/i, "");
+      hint.textContent = "已载入「" + f.name + "」（" + text.length + " 字），可修改后点「开始审查」";
+    } catch (err) {
+      hint.textContent = "读取失败：" + err.message;
+    } finally {
+      fileInput.value = "";
+    }
+  };
+}
