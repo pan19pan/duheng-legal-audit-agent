@@ -229,11 +229,52 @@ async function init() {
   });
   wireUpload();
 
+  if (new URLSearchParams(location.search).get("demo") === "1") {
+    demoMode();
+    return;
+  }
+
   if (m.samples.length) {
     const wanted = new URLSearchParams(location.search).get("case");
     const target = m.samples.find(s => s.case_id === wanted) || m.samples[0];
     loadSample(target.case_id);
   }
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function demoMode() {
+  const q = new URLSearchParams(location.search);
+  if (q.get("demo") !== "1") return false;
+  const m = state.meta;
+  const wanted = ["DEMO-02", "DEMO-03"].filter(id => m.samples.some(s => s.case_id === id));
+  const texts = {};
+  for (const id of wanted) {
+    const r = await fetch("/api/sample/" + id);
+    texts[id] = await r.json();
+  }
+  const facts = document.getElementById("facts");
+  const chips = id => document.querySelectorAll(".chip").forEach(el =>
+    el.classList.toggle("active", el.dataset.id === id));
+
+  for (let n = 0; n < wanted.length; n++) {
+    const c = texts[wanted[n]];
+    facts.value = "";
+    document.getElementById("caseId").value = c.case_id;
+    chips(c.case_id);
+    document.getElementById("results").innerHTML =
+      `<div class="empty"><h3>把案卷事实粘进来</h3><p>系统按四层顺序审查：形式合法性 → 事实认定 → 法律适用 → 裁量适当</p></div>`;
+    const step = n === 0 ? 5 : 9, gap = n === 0 ? 85 : 45;
+    for (let i = step; i <= c.facts_text.length; i += step) {
+      facts.value = c.facts_text.slice(0, i);
+      await sleep(gap);
+    }
+    facts.value = c.facts_text;
+    await sleep(350);
+    runAudit();
+    await sleep(n === 0 ? 2400 : 2000);
+  }
+  return true;
 }
 
 init();
